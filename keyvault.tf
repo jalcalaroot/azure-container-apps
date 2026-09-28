@@ -70,7 +70,7 @@ resource "azurerm_role_assignment" "appgw_kv_secrets_user" {
 resource "azurerm_role_assignment" "ci_plan_kv_reader" {
   scope                = azurerm_key_vault.this.id
   role_definition_name = "Key Vault Reader"
-  principal_id         = azurerm_user_assigned_identity.ci_plan.principal_id
+  principal_id         = data.azurerm_user_assigned_identity.ci_plan.principal_id
 }
 
 # Las asignaciones RBAC de Azure tardan en propagar (hasta unos minutos).

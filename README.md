@@ -95,8 +95,8 @@ Renewing the certificate and Let's Encrypt rate limits: see [CLAUDE.md](CLAUDE.m
 | `network_appgw_subnet_id` | — | from the network project |
 | `network_vnet_id` | — | from the network project |
 | `network_log_analytics_workspace_id` | — | from the network project |
-| `acr_name` | `acrcontainerapps` | globally unique |
-| `key_vault_name` | `kv-containerapps` | globally unique |
+| `acr_name` | `acrjalcalarootapps` | globally unique |
+| `key_vault_name` | `kv-jalcalaroot-capps` | globally unique |
 | `dns_zone_name` | `azure.jalcalaroot.com` | must already exist |
 | `dns_zone_resource_group_name` | `jalcalaroot` | resource group of that zone |
 | `dns_record_name` | `container` | final FQDN = `<dns_record_name>.<dns_zone_name>` |
