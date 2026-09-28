@@ -4,6 +4,7 @@ A hello-world container on Azure Container Apps (Consumption plan — the ECS-Fa
 
 ## Design decisions worth knowing before changing anything
 
+- **Container Apps Environment + Container App are Azure Verified Modules** (`Azure/avm-res-app-managedenvironment`, `Azure/avm-res-app-containerapp` — `container_apps.tf`), migrated 2026-09-28 from hand-written `azurerm_container_app_environment`/`azurerm_container_app` resources. User decision: everything built in Azure from here on uses AVM where one exists. See "Provider version" below for the real fallout (provider downgrade + a DNS resource schema change this forced).
 - **Container Apps Environment is internal-only** (`internal_load_balancer_enabled = true`). An *external* workload-profile environment routes inbound traffic through a Microsoft-managed public IP that bypasses the subnet's NSG entirely — internal-only is what makes Application Gateway the actual sole entry point, and what makes `nsg-containerapps` (in `azure-virtual-network`) meaningful at all. Don't flip this to external without also reconsidering whether the NSG design still holds.
 - **This project has its own Key Vault** (`kv-containerapps`), separate from the network project's. That project's Key Vault is Private-Endpoint-only (`public_network_access_enabled = false`); importing an ACME certificate into a Key Vault is a *data-plane* operation, and a `terraform apply` run from outside the VNet (e.g. a laptop) can't reach a Private-Endpoint-only vault's data plane. Rather than requiring every apply to go through a jumpbox, this vault is RBAC-authorized and public (locked down by role assignment, not by network ACL).
 - **No `prevent_destroy` anywhere.** Unlike `azure-virtual-network`, this environment is meant to be reproducible on demand by design — `terraform destroy` should just work, and a redeploy from a clean state should just work too.
@@ -25,7 +26,9 @@ Same gotcha as `azure-virtual-network`: set via `TF_VAR_subscription_id`, not `A
 
 ## Provider version
 
-Pinned to azurerm `~> 5.4`, newer than `azure-virtual-network`'s `~> 4.0`. Deliberate — separate Terraform state, no compatibility constraint between the two, no reason to hold this one back. Note the schema difference this caused: `azurerm_private_dns_zone_virtual_network_link` and `azurerm_private_dns_a_record` take `private_dns_zone_id` in 5.x, not the `private_dns_zone_name` + `resource_group_name` / `zone_name` + `resource_group_name` style still used in `azure-virtual-network` on 4.x.
+**Downgraded from `~> 5.4` to `>= 4.20.0, < 5.0.0` on 2026-09-28** when Container Apps migrated to Azure Verified Modules (`Azure/avm-res-app-managedenvironment`, `Azure/avm-res-app-containerapp` — see `container_apps.tf`): neither module supports azurerm v5.x yet, verified against each module's real Provider Dependencies, not guessed. Previously this repo intentionally ran newer than `jalcalaroot-azure-bootstrap`'s network module (separate states, no compatibility constraint) — that's no longer true; both are now on 4.x for the same reason (AVM compatibility), coincidentally, not because they need to match each other.
+
+Real consequence of the downgrade, hit while migrating: `azurerm_private_dns_zone_virtual_network_link` and `azurerm_private_dns_a_record` take `private_dns_zone_id` directly in 5.x, but require the older `private_dns_zone_name` + `resource_group_name` / `zone_name` + `resource_group_name` style in 4.x — confirmed against the installed v4.81 provider's actual schema (`terraform providers schema -json`), not assumed from docs. Both resources in `container_apps.tf` use the 4.x style now.
 
 ## Let's Encrypt rate limits
 

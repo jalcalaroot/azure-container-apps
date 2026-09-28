@@ -15,12 +15,17 @@ output "acr_login_server" {
 
 output "container_app_environment_default_domain" {
   description = "Dominio interno del Container Apps Environment (usado por la Private DNS Zone)"
-  value       = azurerm_container_app_environment.this.default_domain
+  value       = module.container_app_environment.default_domain
 }
 
 output "container_app_fqdn" {
   description = "FQDN interno del Container App (solo resoluble dentro de la VNet)"
-  value       = azurerm_container_app.hello_world.ingress[0].fqdn
+  # La AVM no expone el FQDN pelado (sin esquema) directo - fqdn_url trae el
+  # prefijo "https://" incluido (es una URL completa, no un hostname). Se
+  # pela aca para mantener el mismo formato que el output/uso previo
+  # (bare FQDN, consumido tal cual en el backend pool de Application
+  # Gateway - ver app_gateway.tf).
+  value = trimprefix(module.container_app.fqdn_url, "https://")
 }
 
 output "key_vault_name" {
