@@ -19,7 +19,7 @@ A hello-world container served over HTTPS on a custom domain, running on **Azure
 
 Application Gateway is the only public entry point. The Container Apps Environment has no public exposure.
 
-This project consumes an existing VNet (subnets + Log Analytics Workspace) provisioned by a sibling network project; it does not create its own virtual network. Design rationale and implementation notes live in [CLAUDE.md](CLAUDE.md).
+This project consumes an existing VNet (subnets + Log Analytics Workspace) provisioned by [`azure-virtual-network`](https://github.com/jalcalaroot/azure-virtual-network), a separate standalone Terraform project; it does not create its own virtual network. Design rationale and implementation notes live in [CLAUDE.md](CLAUDE.md).
 
 ## Resources deployed
 
@@ -27,8 +27,8 @@ This project consumes an existing VNet (subnets + Log Analytics Workspace) provi
 |---|---|---|
 | Resource Group | Container for everything below, own lifecycle | [Manage resource groups](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/manage-resource-groups-portal) |
 | Azure Container Registry (Basic) | Hosts the `hello-world` image; admin user disabled | [ACR overview](https://learn.microsoft.com/en-us/azure/container-registry/container-registry-intro) |
-| Container Apps Environment | Internal-only boundary the Container App runs in (Consumption workload profile) | [Container Apps environments](https://learn.microsoft.com/en-us/azure/container-apps/environment) |
-| Container App | The workload itself — `nginx:alpine` + a static `index.html` | [Container Apps overview](https://learn.microsoft.com/en-us/azure/container-apps/overview) |
+| Container Apps Environment | Internal-only boundary the Container App runs in (Consumption workload profile); provisioned via the [`Azure/avm-res-app-managedenvironment`](https://registry.terraform.io/modules/Azure/avm-res-app-managedenvironment/azurerm/latest) Azure Verified Module | [Container Apps environments](https://learn.microsoft.com/en-us/azure/container-apps/environment) |
+| Container App | The workload itself — `nginx:alpine` + a static `index.html`; provisioned via the [`Azure/avm-res-app-containerapp`](https://registry.terraform.io/modules/Azure/avm-res-app-containerapp/azurerm/latest) Azure Verified Module | [Container Apps overview](https://learn.microsoft.com/en-us/azure/container-apps/overview) |
 | Private DNS Zone | Resolves the Container App's FQDN inside the VNet (required for an internal environment) | [Azure Private DNS](https://learn.microsoft.com/en-us/azure/dns/private-dns-overview) |
 | Application Gateway (Standard_v2) | Public entry point: TLS termination, HTTP→HTTPS redirect, reverse proxy to the Container App | [Application Gateway overview](https://learn.microsoft.com/en-us/azure/application-gateway/overview) |
 | Public IP (Standard) | Attached to Application Gateway | [Public IP addresses](https://learn.microsoft.com/en-us/azure/virtual-network/ip-services/public-ip-addresses) |
@@ -43,7 +43,7 @@ This project consumes an existing VNet (subnets + Log Analytics Workspace) provi
 - [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.5.0
 - [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli), logged in via `az login` with Contributor-or-better on the subscription
 - [Docker](https://docs.docker.com/get-docker/)
-- The network project applied first — you need its subnet IDs, VNet ID, and Log Analytics Workspace ID (see [Configuration](#configuration))
+- `azure-virtual-network` applied first — you need its subnet IDs, VNet ID, and Log Analytics Workspace ID (see [Configuration](#configuration))
 - An existing, already-delegated Azure DNS Zone for your domain
 
 ## Usage
@@ -121,11 +121,13 @@ GitHub Actions, authenticated to Azure via OIDC (Workload Identity Federation) �
 
 | Workflow | Trigger | Identity | What it does |
 |---|---|---|---|
-| `terraform-plan.yml` | Pull request | `containerapps-plan` (read-only) | `fmt -check`, `validate`, [tflint](https://github.com/terraform-linters/tflint), [Checkov](https://www.checkov.io/) (blocking), `plan`, posts the plan as a PR comment (flags any destroy/replace) |
-| `terraform-apply.yml` | Push to `main`, **and weekly on a schedule** | `containerapps-agent` (read/write, scoped to this project's resources only) | `plan` + `apply` |
+| `terraform-plan.yml` | Pull request (currently disabled, see below) | `containerapps-plan` (read-only) | `fmt -check`, `validate`, [tflint](https://github.com/terraform-linters/tflint), [Checkov](https://www.checkov.io/) (blocking), `plan`, posts the plan as a PR comment (flags any destroy/replace) |
+| `terraform-apply.yml` | Push to `main`, and weekly on a schedule (currently disabled, see below) | `containerapps-agent` (read/write, scoped to this project's resources only) | `plan` + `apply` |
 | `gitleaks.yml` | PR / push to `main` | — | Secret scanning |
 
 The weekly schedule on `terraform-apply.yml` is what renews the Let's Encrypt certificate: `acme_certificate` (`acme.tf`) only re-issues within 30 days of expiry, and nothing else triggers a periodic apply. **Both automatic triggers are currently disabled** — see [Status](#status).
+
+`containerapps-plan` and `containerapps-agent` are **persistent**: they live in their own Terraform root (`./ci`, state `container-apps-ci/terraform.tfstate`) in the permanent `jalcalaroot` resource group, separate from this project's destroyable state. Destroying/redeploying this project's environment never breaks CI — the identities survive teardown and keep authenticating. This root is applied manually, once, and rarely touched again; see CLAUDE.md's "Identidades de CI en state propio" for the full rationale and the one-time apply steps.
 
 Both identities are scoped resource-by-resource (this project's resource group, the specific DNS zone, the specific subnet, the shared state storage account) rather than granted broad access to the shared network resource group. Full RBAC breakdown in [CLAUDE.md](CLAUDE.md).
 
@@ -139,4 +141,9 @@ WAF on Application Gateway (currently `Standard_v2`, not `WAF_v2`), autoscaling 
 
 ## Status
 
-This environment is deployed on demand rather than kept running permanently — Application Gateway bills hourly whether or not it's serving traffic, so it comes down between uses rather than sitting idle. **Currently torn down**: no live demo URL, and both Terraform workflows are `workflow_dispatch`-only until the next deploy (see the comments in `.github/workflows/terraform-*.yml` for the triggers to restore).
+This environment is deployed on demand rather than kept running permanently — Application Gateway bills hourly whether or not it's serving traffic, so it comes down between uses rather than sitting idle. **Currently torn down** (2026-09-29): no live demo URL, and both Terraform workflows are `workflow_dispatch`-only until the next deploy (see the comments in `.github/workflows/terraform-*.yml` for the triggers to restore).
+
+Changelog:
+- **2026-09-28** — Container Apps Environment and Container App migrated to Azure Verified Modules (`Azure/avm-res-app-managedenvironment`, `Azure/avm-res-app-containerapp`); provider constraint downgraded to `>= 4.20.0, < 5.0.0` for AVM compatibility; Key Vault renamed to `kv-jalcalaroot-capps` and ACR renamed to `acrjalcalarootapps` after the original names were squatted globally.
+- **2026-09-28** — CI identities (`containerapps-agent`, `containerapps-plan`) moved to their own persistent Terraform root (`./ci`), fixing the recurring issue where tearing this project down also broke CI authentication until the next redeploy. See CLAUDE.md's "Identidades de CI en state propio".
+- **2026-09-29** — Environment torn down again (deliberately left down per current instructions, see CLAUDE.md's "Current status" section); the network dependency (`azure-virtual-network`) also being torn down around the same time.
