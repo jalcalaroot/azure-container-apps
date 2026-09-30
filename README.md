@@ -124,6 +124,7 @@ GitHub Actions, authenticated to Azure via OIDC (Workload Identity Federation) �
 | `terraform-plan.yml` | Pull request (currently disabled, see below) | `containerapps-plan` (read-only) | `fmt -check`, `validate`, [tflint](https://github.com/terraform-linters/tflint), [Checkov](https://www.checkov.io/) (blocking), `plan`, posts the plan as a PR comment (flags any destroy/replace) |
 | `terraform-apply.yml` | Push to `main`, and weekly on a schedule (currently disabled, see below) | `containerapps-agent` (read/write, scoped to this project's resources only) | `plan` + `apply` |
 | `gitleaks.yml` | PR / push to `main` | — | Secret scanning |
+| `docker-scan.yml` | PR / push to `main`, on `docker/**` changes | — | Builds the image (no push), [Trivy](https://github.com/aquasecurity/trivy) scan — reports all findings to the Security tab, blocks on fixable `CRITICAL`/`HIGH` |
 
 The weekly schedule on `terraform-apply.yml` is what renews the Let's Encrypt certificate — `acme_certificate` only re-issues within 30 days of expiry.
 
