@@ -127,9 +127,7 @@ GitHub Actions, authenticated to Azure via OIDC (Workload Identity Federation) �
 
 The weekly schedule on `terraform-apply.yml` is what renews the Let's Encrypt certificate: `acme_certificate` (`acme.tf`) only re-issues within 30 days of expiry, and nothing else triggers a periodic apply. **Both automatic triggers are currently disabled** — see [Status](#status).
 
-`containerapps-plan` and `containerapps-agent` are **persistent**: they live in their own Terraform root (`./ci`, state `container-apps-ci/terraform.tfstate`) in the permanent `jalcalaroot` resource group, separate from this project's destroyable state. Destroying/redeploying this project's environment never breaks CI — the identities survive teardown and keep authenticating. This root is applied manually, once, and rarely touched again; see CLAUDE.md's "Identidades de CI en state propio" for the full rationale and the one-time apply steps.
-
-Both identities are scoped resource-by-resource (this project's resource group, the specific DNS zone, the specific subnet, the shared state storage account) rather than granted broad access to the shared network resource group. Full RBAC breakdown in [CLAUDE.md](CLAUDE.md).
+`containerapps-plan`/`containerapps-agent` live in their own persistent Terraform root ([`./ci`](./ci)), separate from this project's destroyable state — identities survive teardown/redeploy. Both are scoped resource-by-resource, never blanket access. Full rationale and RBAC breakdown in [CLAUDE.md](CLAUDE.md).
 
 ## Cost
 
@@ -141,9 +139,4 @@ WAF on Application Gateway (currently `Standard_v2`, not `WAF_v2`), autoscaling 
 
 ## Status
 
-This environment is deployed on demand rather than kept running permanently — Application Gateway bills hourly whether or not it's serving traffic, so it comes down between uses rather than sitting idle. **Currently torn down** (2026-09-29): no live demo URL, and both Terraform workflows are `workflow_dispatch`-only until the next deploy (see the comments in `.github/workflows/terraform-*.yml` for the triggers to restore).
-
-Changelog:
-- **2026-09-28** — Container Apps Environment and Container App migrated to Azure Verified Modules (`Azure/avm-res-app-managedenvironment`, `Azure/avm-res-app-containerapp`); provider constraint downgraded to `>= 4.20.0, < 5.0.0` for AVM compatibility; Key Vault renamed to `kv-jalcalaroot-capps` and ACR renamed to `acrjalcalarootapps` after the original names were squatted globally.
-- **2026-09-28** — CI identities (`containerapps-agent`, `containerapps-plan`) moved to their own persistent Terraform root (`./ci`), fixing the recurring issue where tearing this project down also broke CI authentication until the next redeploy. See CLAUDE.md's "Identidades de CI en state propio".
-- **2026-09-29** — Environment torn down again (deliberately left down per current instructions, see CLAUDE.md's "Current status" section); the network dependency (`azure-virtual-network`) also being torn down around the same time.
+Deployed on demand, not kept running permanently (Application Gateway bills hourly regardless of traffic). **Currently torn down** — no live demo URL. Full history and rationale in [CLAUDE.md](CLAUDE.md).
