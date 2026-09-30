@@ -60,7 +60,7 @@ jobs:
       # solo este login oficial deja armados. Sin este paso, el DNS-01
       # challenge fallaría en CI aunque azurerm funcione perfecto.
       - name: Azure login (OIDC)
-        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
         with:
           client-id: ${{ env.ARM_CLIENT_ID }}
           tenant-id: ${{ env.ARM_TENANT_ID }}
@@ -95,7 +95,7 @@ jobs:
           tflint --recursive
 
       - name: Checkov
-        uses: bridgecrewio/checkov-action@99bb2caf247dfd9f03cf984373bc6043d4e32ebf # v12.1347.0
+        uses: bridgecrewio/checkov-action@5798bad4f6dd9c1fb67ae3ec10d42d8fb67037c4 # v12.3126.0
         with:
           directory: .
           framework: terraform
