@@ -125,18 +125,8 @@ GitHub Actions, authenticated to Azure via OIDC (Workload Identity Federation) �
 | `terraform-apply.yml` | Push to `main`, and weekly on a schedule (currently disabled, see below) | `containerapps-agent` (read/write, scoped to this project's resources only) | `plan` + `apply` |
 | `gitleaks.yml` | PR / push to `main` | — | Secret scanning |
 
-The weekly schedule on `terraform-apply.yml` is what renews the Let's Encrypt certificate: `acme_certificate` (`acme.tf`) only re-issues within 30 days of expiry, and nothing else triggers a periodic apply. **Both automatic triggers are currently disabled** — see [Status](#status).
+The weekly schedule on `terraform-apply.yml` is what renews the Let's Encrypt certificate — `acme_certificate` only re-issues within 30 days of expiry.
 
-`containerapps-plan`/`containerapps-agent` live in their own persistent Terraform root ([`./ci`](./ci)), separate from this project's destroyable state — identities survive teardown/redeploy. Both are scoped resource-by-resource, never blanket access. Full rationale and RBAC breakdown in [CLAUDE.md](CLAUDE.md).
+`containerapps-plan`/`containerapps-agent` live in their own persistent Terraform root ([`./ci`](./ci)), separate from this project's destroyable state — identities survive teardown/redeploy. Both are scoped resource-by-resource, never blanket access.
 
-## Cost
-
-Main ongoing costs: Application Gateway (hourly + capacity units) and its Public IP, Container Apps Consumption (scales toward zero when idle), ACR Basic (flat monthly), Key Vault (per-operation), DNS queries, incremental Log Analytics ingestion. Estimate with the [Azure Pricing Calculator](https://azure.microsoft.com/en-us/pricing/calculator/).
-
-## Not covered
-
-WAF on Application Gateway (currently `Standard_v2`, not `WAF_v2`), autoscaling beyond `min_replicas`/`max_replicas`, multi-region.
-
-## Status
-
-Deployed on demand, not kept running permanently (Application Gateway bills hourly regardless of traffic). **Currently torn down** — no live demo URL. Full history and rationale in [CLAUDE.md](CLAUDE.md).
+See [CLAUDE.md](CLAUDE.md) for design decisions, RBAC breakdown, and full project history.
