@@ -10,51 +10,26 @@
 # compartido. El costo es mas granularidad de role assignments; el
 # beneficio es que si este pipeline se compromete, el blast radius es este
 # proyecto, no toda tu red compartida.
-data "azurerm_storage_account" "tfstate" {
-  name                = "sttfstatejalcalaroot"
+#
+# Los identity/federated_identity_credential YA NO se crean aca - viven en
+# el root separado ./ci (state propio, nunca se destruye junto con el
+# resource group de este proyecto). Ver CLAUDE.md, seccion "Identidades de
+# CI en state propio", para el porque. Este archivo solo referencia esas
+# identidades via data source para poder seguir otorgandoles RBAC sobre los
+# recursos de ESTE root.
+data "azurerm_user_assigned_identity" "ci_agent" {
+  name                = "containerapps-agent"
   resource_group_name = "jalcalaroot"
 }
 
-resource "azurerm_user_assigned_identity" "ci_agent" {
-  name                = "containerapps-agent"
-  resource_group_name = azurerm_resource_group.this.name
-  location            = azurerm_resource_group.this.location
-  tags                = local.tags
-}
-
-resource "azurerm_user_assigned_identity" "ci_plan" {
+data "azurerm_user_assigned_identity" "ci_plan" {
   name                = "containerapps-plan"
-  resource_group_name = azurerm_resource_group.this.name
-  location            = azurerm_resource_group.this.location
-  tags                = local.tags
+  resource_group_name = "jalcalaroot"
 }
 
-# Subject claims segun el formato ACTUAL de GitHub para este repo
-# (confirmado via `gh api repos/jalcalaroot/azure-container-apps/actions/oidc/customization/sub`,
-# incluye el sufijo @<owner_id>/@<repo_id> por default, no es una
-# personalizacion nuestra). Un rename de owner o repo rompe esto - mismo
-# gotcha documentado en jalcalaroot-azure-bootstrap. El repo fue renombrado
-# de azure-container-apps-poc a azure-container-apps el 2026-09-06; el
-# repo_id (1358507163) es estable a traves del rename, pero el nombre en el
-# subject SI cambia y debe re-verificarse con el comando de arriba.
-#
-# Push a main y schedule (cron) presentan el MISMO subject claim
-# (ref:refs/heads/main) - por eso una sola federated credential en "agent"
-# alcanza para ambos triggers de terraform-apply.yml.
-resource "azurerm_federated_identity_credential" "ci_agent_main" {
-  name                      = "github-main"
-  user_assigned_identity_id = azurerm_user_assigned_identity.ci_agent.id
-  issuer                    = "https://token.actions.githubusercontent.com"
-  audience                  = ["api://AzureADTokenExchange"]
-  subject                   = "repo:jalcalaroot@22682982/azure-container-apps@1358507163:ref:refs/heads/main"
-}
-
-resource "azurerm_federated_identity_credential" "ci_plan_pr" {
-  name                      = "github-pull-request"
-  user_assigned_identity_id = azurerm_user_assigned_identity.ci_plan.id
-  issuer                    = "https://token.actions.githubusercontent.com"
-  audience                  = ["api://AzureADTokenExchange"]
-  subject                   = "repo:jalcalaroot@22682982/azure-container-apps@1358507163:pull_request"
+data "azurerm_storage_account" "tfstate" {
+  name                = "sttfstatejalcalaroot"
+  resource_group_name = "jalcalaroot"
 }
 
 # --------------------------------------------------------------------------
@@ -66,13 +41,13 @@ resource "azurerm_federated_identity_credential" "ci_plan_pr" {
 resource "azurerm_role_assignment" "ci_agent_rg_contributor" {
   scope                = azurerm_resource_group.this.id
   role_definition_name = "Contributor"
-  principal_id         = azurerm_user_assigned_identity.ci_agent.principal_id
+  principal_id         = data.azurerm_user_assigned_identity.ci_agent.principal_id
 }
 
 resource "azurerm_role_assignment" "ci_plan_rg_reader" {
   scope                = azurerm_resource_group.this.id
   role_definition_name = "Reader"
-  principal_id         = azurerm_user_assigned_identity.ci_plan.principal_id
+  principal_id         = data.azurerm_user_assigned_identity.ci_plan.principal_id
 }
 
 # DNS Zone existente (azure.jalcalaroot.com, RG jalcalaroot) - acotado a la
@@ -82,13 +57,13 @@ resource "azurerm_role_assignment" "ci_plan_rg_reader" {
 resource "azurerm_role_assignment" "ci_agent_dns_zone_contributor" {
   scope                = data.azurerm_dns_zone.this.id
   role_definition_name = "DNS Zone Contributor"
-  principal_id         = azurerm_user_assigned_identity.ci_agent.principal_id
+  principal_id         = data.azurerm_user_assigned_identity.ci_agent.principal_id
 }
 
 resource "azurerm_role_assignment" "ci_plan_dns_zone_reader" {
   scope                = data.azurerm_dns_zone.this.id
   role_definition_name = "Reader"
-  principal_id         = azurerm_user_assigned_identity.ci_plan.principal_id
+  principal_id         = data.azurerm_user_assigned_identity.ci_plan.principal_id
 }
 
 # Subnet especifico (snet-containerapps, VNet vnet-jalcalaroot) - solo el
@@ -98,7 +73,7 @@ resource "azurerm_role_assignment" "ci_plan_dns_zone_reader" {
 resource "azurerm_role_assignment" "ci_agent_subnet_network_contributor" {
   scope                = var.network_containerapps_subnet_id
   role_definition_name = "Network Contributor"
-  principal_id         = azurerm_user_assigned_identity.ci_agent.principal_id
+  principal_id         = data.azurerm_user_assigned_identity.ci_agent.principal_id
 }
 
 # Backend remoto (sttfstatejalcalaroot): plan TAMBIEN necesita escritura, no
@@ -108,13 +83,13 @@ resource "azurerm_role_assignment" "ci_agent_subnet_network_contributor" {
 resource "azurerm_role_assignment" "ci_agent_state_write" {
   scope                = data.azurerm_storage_account.tfstate.id
   role_definition_name = "Storage Blob Data Contributor"
-  principal_id         = azurerm_user_assigned_identity.ci_agent.principal_id
+  principal_id         = data.azurerm_user_assigned_identity.ci_agent.principal_id
 }
 
 resource "azurerm_role_assignment" "ci_plan_state_write" {
   scope                = data.azurerm_storage_account.tfstate.id
   role_definition_name = "Storage Blob Data Contributor"
-  principal_id         = azurerm_user_assigned_identity.ci_plan.principal_id
+  principal_id         = data.azurerm_user_assigned_identity.ci_plan.principal_id
 }
 
 # "Storage Blob Data Contributor" arriba es un rol de DATA PLANE (leer/
@@ -128,13 +103,13 @@ resource "azurerm_role_assignment" "ci_plan_state_write" {
 resource "azurerm_role_assignment" "ci_agent_state_reader" {
   scope                = data.azurerm_storage_account.tfstate.id
   role_definition_name = "Reader"
-  principal_id         = azurerm_user_assigned_identity.ci_agent.principal_id
+  principal_id         = data.azurerm_user_assigned_identity.ci_agent.principal_id
 }
 
 resource "azurerm_role_assignment" "ci_plan_state_reader" {
   scope                = data.azurerm_storage_account.tfstate.id
   role_definition_name = "Reader"
-  principal_id         = azurerm_user_assigned_identity.ci_plan.principal_id
+  principal_id         = data.azurerm_user_assigned_identity.ci_plan.principal_id
 }
 
 # El Container Apps Environment (con logs_destination = "log-analytics")
@@ -146,11 +121,11 @@ resource "azurerm_role_assignment" "ci_plan_state_reader" {
 resource "azurerm_role_assignment" "ci_agent_log_analytics_contributor" {
   scope                = var.network_log_analytics_workspace_id
   role_definition_name = "Log Analytics Contributor"
-  principal_id         = azurerm_user_assigned_identity.ci_agent.principal_id
+  principal_id         = data.azurerm_user_assigned_identity.ci_agent.principal_id
 }
 
 resource "azurerm_role_assignment" "ci_plan_log_analytics_reader" {
   scope                = var.network_log_analytics_workspace_id
   role_definition_name = "Reader"
-  principal_id         = azurerm_user_assigned_identity.ci_plan.principal_id
+  principal_id         = data.azurerm_user_assigned_identity.ci_plan.principal_id
 }
