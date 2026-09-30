@@ -11,7 +11,23 @@ updates:
       # bump that silently rewrites that pin.
       - dependency-name: "hashicorp/azurerm"
         update-types: ["version-update:semver-major"]
+    groups:
+      terraform:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
   - package-ecosystem: "docker"
     directory: "/docker"
     schedule:
       interval: "weekly"
+    groups:
+      docker:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      github-actions:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
