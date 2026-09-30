@@ -1,12 +1,15 @@
 name: Terraform Apply
 
 on:
-  # El ambiente esta actualmente destruido (ver CLAUDE.md "Estado actual") -
-  # sin recursos vivos, no hay identidad de CI que autentique ni certificado
-  # que renovar. Triggers automaticos (push a main, schedule semanal para la
-  # renovacion de Let's Encrypt via acme_certificate - ver acme.tf) quedan
-  # desactivados a proposito para no generar corridas rojas/emails de fallo
-  # contra una infra que no existe. Restaurar ambos al redesplegar:
+  # El ambiente esta actualmente destruido (ver CLAUDE.md "Current status
+  # (2026-09-29)") - no hay certificado que renovar, y desde el fix de
+  # identidades persistentes (ver "Identidades de CI en state propio") un
+  # apply disparado por cron SI lograria autenticarse y recrearia todo el
+  # proyecto desde cero como efecto secundario, no solo fallar de forma
+  # segura como antes. Triggers automaticos (push a main, schedule semanal
+  # para la renovacion de Let's Encrypt via acme_certificate - ver acme.tf)
+  # quedan desactivados a proposito. Restaurar ambos al redesplegar, pensando
+  # primero si el schedule semanal es realmente lo que se quiere reactivar:
   #   push:
   #     branches: [main]
   #     paths:
