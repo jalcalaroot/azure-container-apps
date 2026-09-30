@@ -28,9 +28,10 @@ concurrency:
   cancel-in-progress: false # nunca cancelar un apply en curso
 
 env:
-  # STALE - containerapps-agent identity was destroyed with the teardown;
-  # replace ARM_CLIENT_ID_AGENT after redeploying. Values below all come
-  # from repo variables (Settings -> Secrets and variables -> Actions ->
+  # containerapps-agent is now permanent (./ci persistent root, see CLAUDE.md
+  # "Identidades de CI en state propio") - ARM_CLIENT_ID_AGENT survives
+  # teardown/redeploy, no need to replace it. Values below all come from
+  # repo variables (Settings -> Secrets and variables -> Actions ->
   # Variables) rather than being hardcoded here -- moved out 2026-09 during
   # a security review, since this file is public.
   ARM_CLIENT_ID: ${{ vars.ARM_CLIENT_ID_AGENT }}
@@ -42,6 +43,7 @@ env:
   TF_VAR_network_appgw_subnet_id: ${{ vars.NETWORK_APPGW_SUBNET_ID }}
   TF_VAR_network_vnet_id: ${{ vars.NETWORK_VNET_ID }}
   TF_VAR_network_log_analytics_workspace_id: ${{ vars.NETWORK_LOG_ANALYTICS_WORKSPACE_ID }}
+  TF_VAR_extra_key_vault_admin_object_ids: ${{ vars.EXTRA_KEY_VAULT_ADMIN_OBJECT_IDS }}
   ARM_USE_OIDC: true
 
 jobs:

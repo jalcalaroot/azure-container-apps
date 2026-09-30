@@ -71,7 +71,7 @@ Renamed from `azure-container-apps-poc` to `azure-container-apps` — the naming
 - No resource group, identities, or Key Vault existed in Azure for this project (confirmed via `az group show`, `az identity list`, `az keyvault list-deleted` — all empty).
 - Remote state (`container-apps/terraform.tfstate`) was empty.
 - Both CI workflows were `workflow_dispatch`-only because their `ARM_CLIENT_ID` values pointed at identities that no longer existed. **This specific reason no longer applies** - since the 2026-09-28 persistent-identity fix below, the identities are permanent and survive teardown, so this isn't why any workflow trigger is currently disabled (see "Current status (2026-09-29)" for the actual current trigger state and why).
-- `extra_key_vault_admin_object_ids` no longer pinned a CI agent principal_id at the time - re-pinned since, per `variables.tf`.
+- `extra_key_vault_admin_object_ids` no longer pinned a CI agent principal_id at the time - re-pinned since (2026-09-30: moved off a hardcoded `variables.tf` default, which had leaked a real object ID + personal email in a public repo, onto the `EXTRA_KEY_VAULT_ADMIN_OBJECT_IDS` GitHub variable instead, same pattern as `cost_alert_emails` elsewhere).
 
 ## Identidades de CI en state propio (fix real, 2026-09-28)
 
