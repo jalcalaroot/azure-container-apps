@@ -168,21 +168,17 @@ variable "app_gateway_sku_capacity" {
 variable "extra_key_vault_admin_object_ids" {
   description = <<-EOT
     Object IDs adicionales (ademas de quien corre Terraform ahora mismo) que
-    deben tener 'Key Vault Administrator' sobre el vault de este proyecto.
-
-    Debe incluir el principal_id de la identidad ci_agent (ver ci_identities.tf)
-    UNA VEZ QUE EXISTA: la PRIMERA vez que el agente de CI corre, el refresh
-    de azurerm_key_vault_certificate.this (que pasa ANTES de que el propio
-    apply pueda crear su role assignment) ya necesita poder leer el
-    certificado - un 403 real que tumbo la primera corrida del pipeline la
-    vez anterior. Vacio por defecto porque el entorno esta actualmente
-    destruido (sin identidad de CI viva que pinnear); en el primer deploy
-    tras recrear la infra, aplicar una vez sin este valor, tomar el
-    principal_id resultante de ci_agent, y agregarlo aqui antes de que CI
-    corra por primera vez.
+    deben tener 'Key Vault Administrator' sobre el vault de este proyecto -
+    p.ej. el principal_id de la identidad ci_agent (ver ci_identities.tf),
+    que la PRIMERA vez que corre necesita poder leer
+    azurerm_key_vault_certificate.this ANTES de que el propio apply cree su
+    role assignment (un 403 real que tumbo la primera corrida del pipeline
+    la vez anterior), o el object ID de un humano que necesite acceso de
+    administrador via el portal. No tiene default hardcodeado a proposito
+    (repo publico) - pasar via TF_VAR_extra_key_vault_admin_object_ids
+    (JSON list) o un .tfvars gitignoreado. En CI viene de la GitHub
+    variable EXTRA_KEY_VAULT_ADMIN_OBJECT_IDS.
   EOT
   type        = list(string)
-  default = [
-    "cbefa754-767e-40d5-9ae3-a33d82ecbdd6", # johan_1_04@hotmail.com
-  ]
+  default     = []
 }

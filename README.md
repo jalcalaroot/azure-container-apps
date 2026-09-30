@@ -74,7 +74,7 @@ terraform plan -out=tfplan \
    ```bash
    terraform apply <same -var flags as above>
    ```
-3. **Pin the CI agent's Key Vault access** (first deploy only — see `extra_key_vault_admin_object_ids` in `variables.tf`), then re-apply.
+3. **Pin the CI agent's Key Vault access** (first deploy only): set `-var 'extra_key_vault_admin_object_ids=["<ci-agent-principal-id>"]'` (or the `EXTRA_KEY_VAULT_ADMIN_OBJECT_IDS` GitHub variable for CI), then re-apply.
 4. Visit the hostname printed in the `fqdn` output.
 
 ```bash
