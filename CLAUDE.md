@@ -2,6 +2,10 @@
 
 A hello-world container on Azure Container Apps (Consumption plan — the ECS-Fargate equivalent, not ACI, not AKS), behind Application Gateway with a Let's Encrypt cert, image in a dedicated ACR, monitored via the Log Analytics Workspace already created by `azure-virtual-network`. Reference implementation for the pattern, deployed on demand rather than kept running — see "Current status" below.
 
+## README structure (standard across all `jalcalaroot` Azure repos, 2026-09-30)
+
+README.md is a presentation page, not a design doc — exactly 7 sections, in this order: **Architecture** (diagram), **Resources deployed** (table: Resource | Purpose | Docs, one real Azure-docs link per row), **Prerequisites**, **Usage** (concise, commands over prose), **Configuration**, **Outputs**, **CI/CD**. Nothing else — no Cost, Status, Design notes, or changelog sections, and no cross-repo references to other cloud accounts' projects (don't expose the AWS side's footprint from an Azure repo, or vice versa). All narrative — rationale, history, gotchas, incidents — belongs here in CLAUDE.md instead, linked from the README's closing line.
+
 ## Design decisions worth knowing before changing anything
 
 - **Container Apps Environment + Container App are Azure Verified Modules** (`Azure/avm-res-app-managedenvironment`, `Azure/avm-res-app-containerapp` — `container_apps.tf`), migrated 2026-09-28 from hand-written `azurerm_container_app_environment`/`azurerm_container_app` resources. User decision: everything built in Azure from here on uses AVM where one exists. See "Provider version" below for the real fallout (provider downgrade + a DNS resource schema change this forced).
