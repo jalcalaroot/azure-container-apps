@@ -54,6 +54,14 @@ Two dedicated OIDC identities (`ci_identities.tf`): `containerapps-agent` (apply
 - **`tflint`'s `azurerm_resources_missing_prevent_destroy` rule is disabled in `.tflint.hcl`.** It conflicts with this project's "no `prevent_destroy` anywhere, ephemeral by design" decision (see above) - don't re-enable it without also reconsidering that decision.
 - **16 Checkov findings are suppressed with `#checkov:skip`** across `acr.tf` (8, all Premium-SKU-only ACR features), `keyvault.tf` (5, consequences of the public+RBAC Key Vault decision above), and `app_gateway.tf` (3, the HTTP listener/backend and missing WAF, both already explained above). All are `soft_fail: false` in CI - genuinely blocking, not just warnings - so a real new finding will actually fail the PR, which is the point.
 
+## Docker image scanning: Trivy (2026-09-30)
+
+`docker-scan.yml` builds `docker/Dockerfile` in CI (no push to ACR - the manual `docker build`/`push` flow in the README is unchanged) and scans it with [Trivy](https://github.com/aquasecurity/trivy), same two-pass split already used for Checkov: one pass generates SARIF for the Security tab and never blocks, the other gates the job on `CRITICAL`/`HIGH` findings with `ignore-unfixed: true` - deliberately not gating on every severity, same reasoning as the Checkov plan-scan being soft-fail: a check that blocks on noise it can't act on just trains people to ignore red.
+
+**Real finding on the very first run, not hypothetical**: `CVE-2026-93990` (HIGH, `libexpat` in the `nginx:alpine` base layer, fixed in `2.8.5-r0`). Verified before assuming it was actionable: a fresh `docker pull nginx:alpine` still resolved to `libexpat-2.8.4-r0` - Alpine's package repo for this image hadn't picked up the fix yet, so nothing in this Dockerfile could have fixed it by changing a version pin. Suppressed via `.trivyignore.yaml` with a `statement` explaining why and an `expired_at: 2026-10-31` - same "documented exception, not a silent one" pattern as `#checkov:skip`, except this one self-expires: once the date passes, the gate re-evaluates it for real instead of staying silenced forever. If it's still unfixed by then, extend the date with a note; if Alpine shipped the fix, the next scan just passes clean.
+
+**`trivyignores` isn't auto-discovered for the `.yaml` variant** - Trivy's actual default ignore file (verified against `pkg/result/filter.go` in the Trivy source, not assumed) is `.trivyignore` with no extension. A bare `.trivyignore.yaml` sitting in the repo root does nothing unless the `trivyignores` input is set explicitly on both Trivy steps.
+
 ## Consumers
 
 None yet — this is a leaf project, nothing else in the workspace reads its outputs.
