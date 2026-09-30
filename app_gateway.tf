@@ -79,7 +79,7 @@ resource "azurerm_application_gateway" "this" {
 
   backend_address_pool {
     name  = "beap-hello-world"
-    fqdns = [azurerm_container_app.hello_world.ingress[0].fqdn]
+    fqdns = [trimprefix(module.container_app.fqdn_url, "https://")] # la AVM solo expone la URL completa (con esquema), no el hostname pelado
   }
 
   probe {

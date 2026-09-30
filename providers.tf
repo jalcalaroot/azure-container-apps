@@ -1,14 +1,16 @@
-# NOTA: este proyecto usa azurerm ~> 5.4 (mas reciente que el ~> 4.0 fijado
-# en azure-virtual-network). Son states independientes - no hay ninguna
-# restriccion real de compatibilidad entre ellos, asi que no hay razon para
-# arrastrar la version mas vieja aqui.
+# Bajado de ~> 5.4 a >= 4.20, < 5.0 el 2026-09-28 al migrar Container Apps a
+# Azure Verified Modules: avm-res-app-managedenvironment pide azurerm ~> 4.0,
+# avm-res-app-containerapp pide >= 4.20.0, < 5.0 - interseccion real de
+# ambos, verificada contra la doc de cada modulo, no adivinada. Mismo
+# criterio ya aplicado en jalcalaroot-azure-bootstrap - cada repo tiene su
+# propio provider/state, esto no afecta a azure-aks-cluster.
 terraform {
   required_version = ">= 1.5.0"
 
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 5.4"
+      version = ">= 4.20.0, < 5.0.0"
     }
     acme = {
       source  = "vancluever/acme"

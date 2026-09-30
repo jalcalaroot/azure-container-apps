@@ -1,10 +1,12 @@
 name: Terraform Plan
 
 on:
-  # El ambiente esta actualmente destruido (ver CLAUDE.md "Estado actual") -
-  # sin recursos vivos, la identidad de CI de plan no puede autenticar.
-  # Trigger automatico en PR desactivado a proposito para no generar
-  # corridas rojas contra una infra que no existe. Restaurar al redesplegar:
+  # El ambiente esta actualmente destruido (ver CLAUDE.md "Current status
+  # (2026-09-29)") - la identidad de CI SI podria autenticar (es permanente,
+  # ver "Identidades de CI en state propio"), pero no hay nada que planear
+  # contra un state vacio. Trigger automatico en PR desactivado a proposito
+  # para no generar corridas rojas/ruidosas contra una infra que no existe.
+  # Restaurar al redesplegar:
   #   pull_request:
   #     branches: [main]
   #     paths:

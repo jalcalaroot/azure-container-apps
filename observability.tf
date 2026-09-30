@@ -4,7 +4,7 @@
 
 resource "azurerm_monitor_diagnostic_setting" "container_app_environment" {
   name                       = "diag-container-app-environment"
-  target_resource_id         = azurerm_container_app_environment.this.id
+  target_resource_id         = module.container_app_environment.resource_id
   log_analytics_workspace_id = var.network_log_analytics_workspace_id
 
   enabled_log {

@@ -72,13 +72,18 @@ variable "network_log_analytics_workspace_id" {
 variable "acr_name" {
   description = "Nombre del Azure Container Registry - debe ser unico globalmente, solo alfanumerico"
   type        = string
-  default     = "acrcontainerapps"
+  # "acrcontainerapps" (default original) ya esta tomado globalmente por
+  # otra cuenta de Azure sin relacion con nosotros (confirmado con
+  # `az acr check-name` - no aparece en `az acr list` de esta suscripcion,
+  # asi que no es un residuo nuestro). Los nombres de ACR son unicos a nivel
+  # de todo Azure, no solo de esta cuenta.
+  default = "acrjalcalarootapps"
 }
 
 variable "key_vault_name" {
-  description = "Nombre del Key Vault dedicado a este proyecto - debe ser unico globalmente, 3-24 caracteres alfanumericos. Confirmado disponible via checkNameAvailability."
+  description = "Nombre del Key Vault dedicado a este proyecto - debe ser unico globalmente, 3-24 caracteres alfanumericos. 'kv-containerapps' devolvia VaultAlreadyExists (409) en 4 intentos de apply consecutivos pese a que az keyvault check-name/list/list-deleted lo mostraban disponible - mismo patron que el nombre de ACR (acrcontainerapps) que resulto estar tomado globalmente por otra cuenta (ver acr.tf). Renombrado el 2026-09-28; check-name confirmado para el nuevo nombre antes de aplicar."
   type        = string
-  default     = "kv-containerapps"
+  default     = "kv-jalcalaroot-capps"
 }
 
 variable "container_app_environment_name" {
