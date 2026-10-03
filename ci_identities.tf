@@ -78,24 +78,17 @@ resource "azurerm_role_assignment" "ci_agent_subnet_network_contributor" {
 
 # Backend remoto (sttfstatejalcalaroot): plan TAMBIEN necesita escritura, no
 # solo lectura - el locking nativo del backend azurerm usa un blob lease,
-# que requiere permisos de escritura incluso para "terraform plan".
-#
-# "Storage Blob Data Owner", no "Contributor" - Contributor NO ALCANZA,
-# su dataActions no incluye blobs/lease/action (confirmado contra la
-# definicion real del rol el 2026-10-03, cuando esto rompio
-# drift-detection.yml de jalcalaroot-azure-bootstrap con
-# AuthorizationPermissionMismatch pese a que el rol estaba asignado desde
-# hace semanas). "Owner" si lo cubre (dataActions = blobs/* via wildcard).
-# Mismo fix en jalcalaroot-azure-bootstrap/azure-virtual-network/azure-aks-cluster.
+# que requiere permisos de escritura incluso para "terraform plan" (mismo
+# gotcha ya documentado en jalcalaroot-azure-bootstrap).
 resource "azurerm_role_assignment" "ci_agent_state_write" {
   scope                = data.azurerm_storage_account.tfstate.id
-  role_definition_name = "Storage Blob Data Owner"
+  role_definition_name = "Storage Blob Data Contributor"
   principal_id         = data.azurerm_user_assigned_identity.ci_agent.principal_id
 }
 
 resource "azurerm_role_assignment" "ci_plan_state_write" {
   scope                = data.azurerm_storage_account.tfstate.id
-  role_definition_name = "Storage Blob Data Owner"
+  role_definition_name = "Storage Blob Data Contributor"
   principal_id         = data.azurerm_user_assigned_identity.ci_plan.principal_id
 }
 
