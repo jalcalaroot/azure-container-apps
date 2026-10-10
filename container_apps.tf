@@ -9,7 +9,7 @@
 module "container_app_environment" {
   #checkov:skip=CKV_TF_1: pinned por version semver del Terraform Registry (no un git tag movible) - Azure Verified Module oficial de Microsoft, versiones inmutables. Mismo criterio ya documentado en jalcalaroot-azure-bootstrap/network.tf.
   source  = "Azure/avm-res-app-managedenvironment/azurerm"
-  version = "0.5.0"
+  version = "0.5.1"
 
   name                = var.container_app_environment_name
   location            = azurerm_resource_group.this.location
