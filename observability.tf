@@ -30,6 +30,20 @@ resource "azurerm_monitor_diagnostic_setting" "app_gateway" {
   }
 }
 
+resource "azurerm_monitor_diagnostic_setting" "app_gateway_public_ip" {
+  name                       = "diag-pip-app-gateway"
+  target_resource_id         = azurerm_public_ip.appgw.id
+  log_analytics_workspace_id = var.network_log_analytics_workspace_id
+
+  enabled_log {
+    category_group = "allLogs"
+  }
+
+  enabled_metric {
+    category = "AllMetrics"
+  }
+}
+
 resource "azurerm_monitor_diagnostic_setting" "acr" {
   name                       = "diag-acr"
   target_resource_id         = azurerm_container_registry.this.id
